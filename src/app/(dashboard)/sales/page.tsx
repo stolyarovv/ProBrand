@@ -8,11 +8,18 @@ export default async function SalesPage() {
   const session = await getServerSession(authOptions);
   const orgId = session!.user.organizationId;
 
-  const dealRows = await prisma.deal.findMany({
-    where: { organizationId: orgId, deletedAt: null },
-    orderBy: { updatedAt: "desc" },
-    include: { client: true },
-  });
+  const [dealRows, clientOptions] = await Promise.all([
+    prisma.deal.findMany({
+      where: { organizationId: orgId, deletedAt: null },
+      orderBy: { updatedAt: "desc" },
+      include: { client: true },
+    }),
+    prisma.client.findMany({
+      where: { organizationId: orgId, deletedAt: null },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
 
   const initialDeals: FunnelDeal[] = dealRows.map((d) => ({
     id: d.id,
@@ -35,7 +42,11 @@ export default async function SalesPage() {
         </p>
       </header>
 
-      <SalesFunnelBoard initialDeals={initialDeals} canEdit={canEdit} />
+      <SalesFunnelBoard
+        initialDeals={initialDeals}
+        initialClients={clientOptions}
+        canEdit={canEdit}
+      />
     </div>
   );
 }

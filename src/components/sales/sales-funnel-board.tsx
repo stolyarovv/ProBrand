@@ -14,6 +14,8 @@ export type FunnelDeal = {
   client: { id: string; name: string };
 };
 
+export type ClientOption = { id: string; name: string };
+
 const COLUMNS: { id: string; label: string; stages: DealStage[] }[] = [
   { id: "lead", label: "Лид", stages: [DealStage.LEAD, DealStage.QUALIFIED] },
   { id: "proposal", label: "Предложение отправлено", stages: [DealStage.PROPOSAL] },
@@ -52,15 +54,23 @@ type ViewMode = "funnel" | "active";
 
 export function SalesFunnelBoard({
   initialDeals,
+  initialClients,
   canEdit,
 }: {
   initialDeals: FunnelDeal[];
+  initialClients: ClientOption[];
   canEdit: boolean;
 }) {
   const [deals, setDeals] = useState<FunnelDeal[]>(initialDeals);
+  const [clients, setClients] = useState<ClientOption[]>(initialClients);
   const [view, setView] = useState<ViewMode>("funnel");
   const [lostPromptDealId, setLostPromptDealId] = useState<string | null>(null);
   const [lostReasonDraft, setLostReasonDraft] = useState("");
+  const [addLeadOpen, setAddLeadOpen] = useState(false);
+  const [leadClientId, setLeadClientId] = useState("");
+  const [leadNewName, setLeadNewName] = useState("");
+  const [leadTitle, setLeadTitle] = useState("Новая сделка");
+  const [leadAmount, setLeadAmount] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -130,6 +140,61 @@ export function SalesFunnelBoard({
     }
   }
 
+  function resetAddLeadForm() {
+    setLeadClientId("");
+    setLeadNewName("");
+    setLeadTitle("Новая сделка");
+    setLeadAmount("");
+  }
+
+  async function submitNewLead() {
+    setSaving(true);
+    setError(null);
+    const newName = leadNewName.trim();
+    const amountNum = leadAmount.trim() === "" ? 0 : Number(leadAmount.replace(/\s/g, "").replace(",", "."));
+    if (Number.isNaN(amountNum) || amountNum < 0) {
+      setError("Укажите корректную сумму");
+      setSaving(false);
+      return;
+    }
+    try {
+      const body =
+        newName.length > 0
+          ? { newClientName: newName, title: leadTitle.trim() || "Новая сделка", amount: amountNum }
+          : {
+              clientId: leadClientId,
+              title: leadTitle.trim() || "Новая сделка",
+              amount: amountNum,
+            };
+      const res = await fetch("/api/deals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string; deal?: FunnelDeal };
+      if (!res.ok) {
+        setError(data.error ?? "Не удалось создать лид");
+        setSaving(false);
+        return;
+      }
+      if (data.deal) {
+        setDeals((prev) => [data.deal!, ...prev]);
+        const c = data.deal.client;
+        setClients((prev) =>
+          prev.some((x) => x.id === c.id)
+            ? prev
+            : [...prev, c].sort((a, b) => a.name.localeCompare(b.name, "ru")),
+        );
+      }
+      setAddLeadOpen(false);
+      resetAddLeadForm();
+    } catch {
+      setError("Ошибка сети");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -165,11 +230,26 @@ export function SalesFunnelBoard({
             Действующие клиенты
           </button>
         </div>
-        {!canEdit && (
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Только просмотр: перетаскивание доступно редакторам.
-          </p>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                resetAddLeadForm();
+                setAddLeadOpen(true);
+              }}
+              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 dark:focus:ring-offset-slate-950"
+            >
+              Добавить лид
+            </button>
+          )}
+          {!canEdit && (
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Только просмотр: перетаскивание доступно редакторам.
+            </p>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -243,6 +323,113 @@ export function SalesFunnelBoard({
           </div>
         </div>
       )}
+
+      <Dialog
+        open={addLeadOpen}
+        onClose={() => {
+          if (!saving) {
+            setAddLeadOpen(false);
+            resetAddLeadForm();
+            setError(null);
+          }
+        }}
+        className="relative z-50"
+      >
+        <DialogBackdrop className="fixed inset-0 bg-black/40" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Новый лид</h3>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Сделка появится в колонке «Лид». Выберите клиента или введите имя нового.
+            </p>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label htmlFor="lead-client" className="block text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Клиент из списка
+                </label>
+                <select
+                  id="lead-client"
+                  value={leadClientId}
+                  disabled={leadNewName.trim().length > 0}
+                  onChange={(e) => setLeadClientId(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                >
+                  <option value="">— не выбран —</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="lead-new" className="block text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Или новый клиент / компания
+                </label>
+                <input
+                  id="lead-new"
+                  type="text"
+                  value={leadNewName}
+                  onChange={(e) => setLeadNewName(e.target.value)}
+                  placeholder="Название лида"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                />
+                {leadNewName.trim().length > 0 && (
+                  <p className="mt-1 text-xs text-slate-500">Список клиентов отключён, пока заполнено это поле.</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="lead-title" className="block text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Название сделки
+                </label>
+                <input
+                  id="lead-title"
+                  type="text"
+                  value={leadTitle}
+                  onChange={(e) => setLeadTitle(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                />
+              </div>
+              <div>
+                <label htmlFor="lead-amount" className="block text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Сумма (опционально)
+                </label>
+                <input
+                  id="lead-amount"
+                  type="text"
+                  inputMode="decimal"
+                  value={leadAmount}
+                  onChange={(e) => setLeadAmount(e.target.value)}
+                  placeholder="0"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                disabled={saving}
+                onClick={() => {
+                  setAddLeadOpen(false);
+                  resetAddLeadForm();
+                  setError(null);
+                }}
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                disabled={saving}
+                onClick={() => void submitNewLead()}
+              >
+                Создать
+              </button>
+            </div>
+          </DialogPanel>
+        </div>
+      </Dialog>
 
       <Dialog
         open={lostPromptDealId !== null}
