@@ -151,6 +151,7 @@ model Deal {
   ownerId        String?
   title          String
   stage          DealStage    @default(LEAD)
+  lostReason     String?
   amount         Decimal      @db.Decimal(12, 2)
   currency       String       @default("RUB")
   expectedClose  DateTime?
