@@ -1,0 +1,394 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  VIEWER
+}
+
+enum DealStage {
+  LEAD
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum ProjectStatus {
+  PLANNED
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum DocumentEntityType {
+  CLIENT
+  PROJECT
+  DEAL
+  STANDALONE
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id               String             @id @default(cuid())
+  email            String             @unique
+  name             String?
+  passwordHash     String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  memberships      Membership[]
+  projectMembers   ProjectMember[]
+  dealsOwned       Deal[]             @relation("DealOwner")
+  tasksAssigned    Task[]             @relation("TaskAssignee")
+  timeEntries      TimeEntry[]
+  journalEntries   JournalEntry[]     @relation("JournalCreator")
+  documentApprovals DocumentApproval[]
+}
+
+model Organization {
+  id           String         @id @default(cuid())
+  name         String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  deletedAt    DateTime?
+  memberships  Membership[]
+  clients      Client[]
+  deals        Deal[]
+  projects     Project[]
+  invoices     Invoice[]
+  payments     Payment[]
+  expenses     Expense[]
+  bankAccounts BankAccount[]
+  accounts     Account[]
+  journalEntries JournalEntry[]
+  documents    Document[]
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           Role         @default(VIEWER)
+  createdAt      DateTime     @default(now())
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+model Client {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  email          String?
+  phone          String?
+  address        String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contacts       Contact[]
+  deals          Deal[]
+  projects       Project[]
+
+  @@index([organizationId])
+}
+
+model Contact {
+  id       String  @id @default(cuid())
+  clientId String
+  name     String
+  email    String?
+  phone    String?
+  role     String?
+  client   Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+}
+
+model Deal {
+  id             String       @id @default(cuid())
+  organizationId String
+  clientId       String
+  ownerId        String?
+  title          String
+  stage          DealStage    @default(LEAD)
+  amount         Decimal      @db.Decimal(12, 2)
+  currency       String       @default("RUB")
+  expectedClose  DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  owner          User?        @relation("DealOwner", fields: [ownerId], references: [id])
+  projects       Project[]
+  invoices       Invoice[]
+
+  @@index([organizationId])
+  @@index([clientId])
+}
+
+model Project {
+  id             String        @id @default(cuid())
+  organizationId String
+  clientId       String
+  dealId         String?
+  name           String
+  status         ProjectStatus @default(PLANNED)
+  budgetPlanned  Decimal?      @db.Decimal(12, 2)
+  currency       String        @default("RUB")
+  startDate      DateTime?
+  endDate        DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client         Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  deal           Deal?         @relation(fields: [dealId], references: [id])
+  members        ProjectMember[]
+  tasks          Task[]
+  timeEntries    TimeEntry[]
+  invoices       Invoice[]
+
+  @@index([organizationId])
+  @@index([clientId])
+}
+
+model ProjectMember {
+  id        String  @id @default(cuid())
+  projectId String
+  userId    String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  projectId   String
+  assigneeId  String?
+  title       String
+  status      TaskStatus @default(TODO)
+  dueAt       DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee    User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  @@index([projectId])
+  @@index([assigneeId])
+}
+
+model TimeEntry {
+  id          String   @id @default(cuid())
+  projectId   String
+  userId      String
+  hours       Decimal  @db.Decimal(8, 2)
+  hourlyRate  Decimal? @db.Decimal(12, 2)
+  description String?
+  workedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([userId])
+}
+
+model BankAccount {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  currency       String       @default("RUB")
+  balanceHint    Decimal?     @db.Decimal(12, 2)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  payments       Payment[]
+
+  @@index([organizationId])
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  organizationId String
+  projectId      String?
+  dealId         String?
+  number         String
+  status         InvoiceStatus @default(DRAFT)
+  amount         Decimal       @db.Decimal(12, 2)
+  currency       String        @default("RUB")
+  issuedAt       DateTime?
+  dueAt          DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project        Project?      @relation(fields: [projectId], references: [id])
+  deal           Deal?         @relation(fields: [dealId], references: [id])
+  payments       Payment[]
+
+  @@unique([organizationId, number])
+  @@index([organizationId])
+}
+
+model Payment {
+  id               String       @id @default(cuid())
+  organizationId   String
+  invoiceId        String?
+  bankAccountId    String?
+  amount           Decimal      @db.Decimal(12, 2)
+  currency         String       @default("RUB")
+  paidAt           DateTime     @default(now())
+  note             String?
+  createdAt        DateTime     @default(now())
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoice          Invoice?     @relation(fields: [invoiceId], references: [id])
+  bankAccount      BankAccount? @relation(fields: [bankAccountId], references: [id])
+
+  @@index([organizationId])
+  @@index([invoiceId])
+}
+
+model Expense {
+  id             String       @id @default(cuid())
+  organizationId String
+  category       String
+  amount         Decimal      @db.Decimal(12, 2)
+  currency       String       @default("RUB")
+  incurredAt     DateTime     @default(now())
+  description    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model Account {
+  id             String       @id @default(cuid())
+  organizationId String
+  code           String
+  name           String
+  type           AccountType
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  journalLines   JournalLine[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+}
+
+model JournalEntry {
+  id             String       @id @default(cuid())
+  organizationId String
+  createdById    String
+  description    String?
+  entryDate      DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User         @relation("JournalCreator", fields: [createdById], references: [id])
+  lines          JournalLine[]
+
+  @@index([organizationId])
+}
+
+model JournalLine {
+  id             String       @id @default(cuid())
+  journalEntryId String
+  accountId      String
+  debit          Decimal      @default(0) @db.Decimal(12, 2)
+  credit         Decimal      @default(0) @db.Decimal(12, 2)
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account        Account      @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([journalEntryId])
+  @@index([accountId])
+}
+
+model Document {
+  id             String               @id @default(cuid())
+  organizationId String
+  title          String
+  entityType     DocumentEntityType
+  entityId       String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  deletedAt      DateTime?
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  versions       DocumentVersion[]
+  approvals      DocumentApproval[]
+
+  @@index([organizationId])
+}
+
+model DocumentVersion {
+  id         String   @id @default(cuid())
+  documentId String
+  version    Int
+  storageKey String
+  mimeType   String?
+  sizeBytes  Int?
+  createdAt  DateTime @default(now())
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, version])
+  @@index([documentId])
+}
+
+model DocumentApproval {
+  id         String         @id @default(cuid())
+  documentId String
+  userId     String
+  status     ApprovalStatus @default(PENDING)
+  comment    String?
+  decidedAt  DateTime?
+  createdAt  DateTime       @default(now())
+  document   Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+}
