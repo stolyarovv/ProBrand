@@ -64,8 +64,8 @@ export async function PATCH(
     }
   }
 
-  const nextKind = kind ?? project.kind;
-  if (nextKind === ProjectKind.COMMERCIAL && !project.clientId) {
+  // Только при явной смене типа на коммерческий — требуем клиента (не блокируем PATCH только с archiveState и т.п.)
+  if (kind !== undefined && kind === ProjectKind.COMMERCIAL && !project.clientId) {
     return NextResponse.json(
       { error: "Сначала укажите клиента у проекта, чтобы перевести его в коммерческие" },
       { status: 400 },
@@ -93,15 +93,23 @@ export async function PATCH(
     return NextResponse.json({ error: "Нет полей для обновления" }, { status: 400 });
   }
 
-  const updated = await prisma.project.update({
-    where: { id },
-    data: updateData,
-    include: {
-      client: true,
-      owner: { select: { id: true, name: true, email: true } },
-      _count: { select: { tasks: true, timeEntries: true } },
-    },
-  });
+  let updated;
+  try {
+    updated = await prisma.project.update({
+      where: { id },
+      data: updateData,
+      include: {
+        client: true,
+        owner: { select: { id: true, name: true, email: true } },
+        _count: { select: { tasks: true, timeEntries: true } },
+      },
+    });
+  } catch (e) {
+    console.error("[PATCH /api/projects/:id]", e);
+    const msg =
+      e instanceof Error ? e.message : "Ошибка сохранения в базе данных";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 
   return NextResponse.json({
     project: {
