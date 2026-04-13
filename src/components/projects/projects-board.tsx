@@ -3,6 +3,7 @@
 import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import { ProjectArchiveState, ProjectKind, ProjectStatus, ProjectWorkType } from "@prisma/client";
 import { useEffect, useState } from "react";
+import { formatMoney } from "@/lib/format-money";
 
 export type ProjectListItem = {
   id: string;
@@ -50,13 +51,6 @@ const STATUS_LABELS: Record<ProjectStatus, string> = {
   [ProjectStatus.COMPLETED]: "Завершён",
   [ProjectStatus.CANCELLED]: "Отменён",
 };
-
-function formatMoney(amount: number | null, currency: string) {
-  if (amount == null) {
-    return "—";
-  }
-  return `${amount.toLocaleString("ru-RU")} ${currency}`;
-}
 
 function formatCreated(iso: string) {
   return new Date(iso).toLocaleDateString("ru-RU", {

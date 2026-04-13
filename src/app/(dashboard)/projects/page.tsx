@@ -57,7 +57,7 @@ export default async function ProjectsPage() {
     label: m.user.name?.trim() || m.user.email,
   }));
 
-  const canEdit = session.user.role !== Role.VIEWER;
+  const canEdit = session!.user.role !== Role.VIEWER;
 
   return (
     <div className="space-y-8">

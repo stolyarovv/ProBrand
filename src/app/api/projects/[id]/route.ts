@@ -1,17 +1,9 @@
-import { Prisma, ProjectArchiveState, ProjectKind, ProjectWorkType, Role } from "@prisma/client";
+import { Prisma, ProjectKind, Role } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-const patchBody = z.object({
-  ownerId: z.string().cuid().optional().nullable(),
-  kind: z.nativeEnum(ProjectKind).optional(),
-  workType: z.nativeEnum(ProjectWorkType).optional(),
-  archiveState: z.nativeEnum(ProjectArchiveState).optional(),
-  budgetPlanned: z.coerce.number().min(0).optional().nullable(),
-});
+import { projectPatchBodySchema } from "@/lib/validations/project";
 
 async function assertUserInOrg(organizationId: string, userId: string) {
   const m = await prisma.membership.findFirst({
@@ -50,7 +42,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Некорректный JSON" }, { status: 400 });
   }
 
-  const parsed = patchBody.safeParse(json);
+  const parsed = projectPatchBodySchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json({ error: "Некорректные данные", details: parsed.error.flatten() }, { status: 400 });
   }

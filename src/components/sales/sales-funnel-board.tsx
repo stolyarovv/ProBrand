@@ -3,6 +3,7 @@
 import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import { DealStage } from "@prisma/client";
 import { useState } from "react";
+import { formatMoney } from "@/lib/format-money";
 
 export type FunnelDeal = {
   id: string;
@@ -44,10 +45,6 @@ function stageForColumn(columnId: string): DealStage {
     default:
       return DealStage.LEAD;
   }
-}
-
-function formatMoney(amount: number, currency: string) {
-  return `${amount.toLocaleString("ru-RU")} ${currency}`;
 }
 
 type ViewMode = "funnel" | "active";

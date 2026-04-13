@@ -1,49 +1,9 @@
-import {
-  type Client,
-  type Project,
-  ProjectArchiveState,
-  ProjectKind,
-  ProjectWorkType,
-  Role,
-} from "@prisma/client";
+import { type Client, type Project, ProjectKind, Role } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-const postBody = z
-  .object({
-    name: z.string().min(1).max(300),
-    kind: z.nativeEnum(ProjectKind),
-    workType: z.nativeEnum(ProjectWorkType),
-    clientId: z.string().cuid().optional().nullable(),
-    newClientName: z.string().min(1).max(200).optional(),
-    ownerId: z.string().cuid().optional().nullable(),
-    budgetPlanned: z.coerce.number().min(0).optional().nullable(),
-    currency: z.string().length(3).optional().default("BYN"),
-    archiveState: z.nativeEnum(ProjectArchiveState).optional().default(ProjectArchiveState.ACTIVE),
-  })
-  .superRefine((data, ctx) => {
-    if (data.kind === ProjectKind.COMMERCIAL) {
-      const hasNew = !!(data.newClientName && data.newClientName.trim());
-      const hasId = !!data.clientId;
-      if (!hasNew && !hasId) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Для коммерческого проекта выберите клиента или укажите нового",
-          path: ["clientId"],
-        });
-      }
-      if (hasNew && hasId) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Укажите только один вариант: клиент из списка или новое имя",
-          path: ["newClientName"],
-        });
-      }
-    }
-  });
+import { projectPostBodySchema } from "@/lib/validations/project";
 
 async function assertUserInOrg(organizationId: string, userId: string) {
   const m = await prisma.membership.findFirst({
@@ -71,7 +31,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Некорректный JSON" }, { status: 400 });
   }
 
-  const parsed = postBody.safeParse(json);
+  const parsed = projectPostBodySchema.safeParse(json);
   if (!parsed.success) {
     const msg = parsed.error.issues[0]?.message ?? "Некорректные данные";
     return NextResponse.json({ error: msg, details: parsed.error.flatten() }, { status: 400 });

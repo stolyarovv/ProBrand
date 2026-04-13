@@ -31,7 +31,7 @@ export default async function SalesPage() {
     client: { id: d.client.id, name: d.client.name },
   }));
 
-  const canEdit = session.user.role !== Role.VIEWER;
+  const canEdit = session!.user.role !== Role.VIEWER;
 
   return (
     <div className="space-y-8">
