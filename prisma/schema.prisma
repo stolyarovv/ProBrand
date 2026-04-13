@@ -2,6 +2,7 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Базовая валюта учёта — BYN; суммы в иных валютах в прикладной логике переводятся в BYN на дату оплаты/проводки.
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -169,7 +170,7 @@ model Deal {
   stage          DealStage    @default(LEAD)
   lostReason     String?
   amount         Decimal      @db.Decimal(12, 2)
-  currency       String       @default("RUB")
+  currency       String       @default("BYN")
   expectedClose  DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -262,7 +263,7 @@ model BankAccount {
   id             String       @id @default(cuid())
   organizationId String
   name           String
-  currency       String       @default("RUB")
+  currency       String       @default("BYN")
   balanceHint    Decimal?     @db.Decimal(12, 2)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -280,7 +281,7 @@ model Invoice {
   number         String
   status         InvoiceStatus @default(DRAFT)
   amount         Decimal       @db.Decimal(12, 2)
-  currency       String        @default("RUB")
+  currency       String        @default("BYN")
   issuedAt       DateTime?
   dueAt          DateTime?
   createdAt      DateTime      @default(now())
@@ -301,7 +302,7 @@ model Payment {
   invoiceId        String?
   bankAccountId    String?
   amount           Decimal      @db.Decimal(12, 2)
-  currency         String       @default("RUB")
+  currency         String       @default("BYN")
   paidAt           DateTime     @default(now())
   note             String?
   createdAt        DateTime     @default(now())
@@ -318,7 +319,7 @@ model Expense {
   organizationId String
   category       String
   amount         Decimal      @db.Decimal(12, 2)
-  currency       String       @default("RUB")
+  currency       String       @default("BYN")
   incurredAt     DateTime     @default(now())
   description    String?
   createdAt      DateTime     @default(now())

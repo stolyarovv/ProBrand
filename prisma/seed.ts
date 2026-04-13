@@ -170,7 +170,7 @@ async function main() {
         ownerId: manager.id,
         title: "Брендинг Q2",
         amount: 450000,
-        currency: "RUB",
+        currency: "BYN",
       },
     });
   }

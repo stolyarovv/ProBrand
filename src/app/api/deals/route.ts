@@ -11,7 +11,7 @@ const postBody = z
     newClientName: z.string().min(1).max(200).optional(),
     title: z.string().min(1).max(300),
     amount: z.coerce.number().min(0).optional().default(0),
-    currency: z.string().length(3).optional().default("RUB"),
+    currency: z.string().length(3).optional().default("BYN"),
   })
   .superRefine((data, ctx) => {
     const hasNew = !!(data.newClientName && data.newClientName.trim());
