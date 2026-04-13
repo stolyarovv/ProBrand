@@ -84,7 +84,7 @@ export function ProjectsBoard({
   const [newClientName, setNewClientName] = useState("");
   const [ownerId, setOwnerId] = useState("");
   const [budget, setBudget] = useState("");
-  const [currency, setCurrency] = useState("RUB");
+  const [currency, setCurrency] = useState("BYN");
 
   function resetCreateForm() {
     setName("");
@@ -94,7 +94,7 @@ export function ProjectsBoard({
     setNewClientName("");
     setOwnerId("");
     setBudget("");
-    setCurrency("RUB");
+    setCurrency("BYN");
   }
 
   async function patchProject(projectId: string, body: Record<string, unknown>) {
@@ -133,7 +133,7 @@ export function ProjectsBoard({
         name: name.trim(),
         kind,
         workType,
-        currency: currency.trim().toUpperCase() || "RUB",
+        currency: currency.trim().toUpperCase() || "BYN",
       };
       if (ownerId) {
         payload.ownerId = ownerId;

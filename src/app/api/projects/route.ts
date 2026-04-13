@@ -20,7 +20,7 @@ const postBody = z
     newClientName: z.string().min(1).max(200).optional(),
     ownerId: z.string().cuid().optional().nullable(),
     budgetPlanned: z.coerce.number().min(0).optional().nullable(),
-    currency: z.string().length(3).optional().default("RUB"),
+    currency: z.string().length(3).optional().default("BYN"),
   })
   .superRefine((data, ctx) => {
     if (data.kind === ProjectKind.COMMERCIAL) {
