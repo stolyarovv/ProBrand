@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
-import { ProjectKind, ProjectStatus, ProjectWorkType } from "@prisma/client";
+import { ProjectArchiveState, ProjectKind, ProjectStatus, ProjectWorkType } from "@prisma/client";
 import { useEffect, useState } from "react";
 
 export type ProjectListItem = {
@@ -9,6 +9,7 @@ export type ProjectListItem = {
   name: string;
   kind: ProjectKind;
   workType: ProjectWorkType;
+  archiveState: ProjectArchiveState;
   status: ProjectStatus;
   budgetPlanned: number | null;
   currency: string;
@@ -35,6 +36,11 @@ const WORK_TYPE_LABELS: Record<ProjectWorkType, string> = {
   [ProjectWorkType.MARKETING]: "Маркетинг",
   [ProjectWorkType.DESIGN]: "Дизайн",
   [ProjectWorkType.OTHER]: "Прочее",
+};
+
+const ARCHIVE_LABELS: Record<ProjectArchiveState, string> = {
+  [ProjectArchiveState.ACTIVE]: "Актив",
+  [ProjectArchiveState.ARCHIVED]: "Архив",
 };
 
 const STATUS_LABELS: Record<ProjectStatus, string> = {
@@ -85,6 +91,7 @@ export function ProjectsBoard({
   const [ownerId, setOwnerId] = useState("");
   const [budget, setBudget] = useState("");
   const [currency, setCurrency] = useState("BYN");
+  const [archiveState, setArchiveState] = useState<ProjectArchiveState>(ProjectArchiveState.ACTIVE);
 
   function resetCreateForm() {
     setName("");
@@ -95,6 +102,7 @@ export function ProjectsBoard({
     setOwnerId("");
     setBudget("");
     setCurrency("BYN");
+    setArchiveState(ProjectArchiveState.ACTIVE);
   }
 
   async function patchProject(projectId: string, body: Record<string, unknown>) {
@@ -133,6 +141,7 @@ export function ProjectsBoard({
         name: name.trim(),
         kind,
         workType,
+        archiveState,
         currency: currency.trim().toUpperCase() || "BYN",
       };
       if (ownerId) {
@@ -213,11 +222,12 @@ export function ProjectsBoard({
       )}
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div className="hidden border-b border-slate-200 bg-slate-50/80 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400 lg:grid lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.75fr)] lg:gap-3">
+        <div className="hidden border-b border-slate-200 bg-slate-50/80 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.85fr)_minmax(0,0.75fr)_minmax(0,0.8fr)_minmax(0,0.65fr)] lg:gap-3">
           <span>Проект</span>
           <span>Ответственный</span>
           <span>Тип проекта</span>
           <span>Коммерческий / внутренний</span>
+          <span>Актив / архив</span>
           <span>Бюджет</span>
           <span>Создан</span>
         </div>
@@ -227,7 +237,7 @@ export function ProjectsBoard({
           ) : (
             projects.map((p) => (
               <li key={p.id} className="px-4 py-4">
-                <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.75fr)] lg:items-center lg:gap-3">
+                <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.85fr)_minmax(0,0.75fr)_minmax(0,0.8fr)_minmax(0,0.65fr)] lg:items-center lg:gap-3">
                   <div>
                     <p className="font-medium text-slate-900 dark:text-white">{p.name}</p>
                     <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
@@ -287,6 +297,25 @@ export function ProjectsBoard({
                       {(Object.keys(KIND_LABELS) as ProjectKind[]).map((key) => (
                         <option key={key} value={key}>
                           {KIND_LABELS[key]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-slate-500 lg:hidden">Актив / архив</label>
+                    <select
+                      value={p.archiveState}
+                      disabled={!canEdit || saving}
+                      onChange={(e) => {
+                        void patchProject(p.id, {
+                          archiveState: e.target.value as ProjectArchiveState,
+                        });
+                      }}
+                      className="select-field"
+                    >
+                      {(Object.keys(ARCHIVE_LABELS) as ProjectArchiveState[]).map((key) => (
+                        <option key={key} value={key}>
+                          {ARCHIVE_LABELS[key]}
                         </option>
                       ))}
                     </select>
@@ -463,6 +492,23 @@ export function ProjectsBoard({
                   {(Object.keys(WORK_TYPE_LABELS) as ProjectWorkType[]).map((key) => (
                     <option key={key} value={key}>
                       {WORK_TYPE_LABELS[key]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="proj-archive" className="block text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Актив / архив
+                </label>
+                <select
+                  id="proj-archive"
+                  value={archiveState}
+                  onChange={(e) => setArchiveState(e.target.value as ProjectArchiveState)}
+                  className="mt-1 select-field"
+                >
+                  {(Object.keys(ARCHIVE_LABELS) as ProjectArchiveState[]).map((key) => (
+                    <option key={key} value={key}>
+                      {ARCHIVE_LABELS[key]}
                     </option>
                   ))}
                 </select>

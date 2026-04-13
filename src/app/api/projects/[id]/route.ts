@@ -1,4 +1,4 @@
-import { Prisma, ProjectKind, ProjectWorkType, Role } from "@prisma/client";
+import { Prisma, ProjectArchiveState, ProjectKind, ProjectWorkType, Role } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -9,6 +9,7 @@ const patchBody = z.object({
   ownerId: z.string().cuid().optional().nullable(),
   kind: z.nativeEnum(ProjectKind).optional(),
   workType: z.nativeEnum(ProjectWorkType).optional(),
+  archiveState: z.nativeEnum(ProjectArchiveState).optional(),
   budgetPlanned: z.coerce.number().min(0).optional().nullable(),
 });
 
@@ -54,7 +55,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Некорректные данные", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { ownerId, kind, workType, budgetPlanned } = parsed.data;
+  const { ownerId, kind, workType, archiveState, budgetPlanned } = parsed.data;
 
   if (ownerId !== undefined && ownerId !== null) {
     const ok = await assertUserInOrg(orgId, ownerId);
@@ -81,6 +82,9 @@ export async function PATCH(
   if (workType !== undefined) {
     updateData.workType = workType;
   }
+  if (archiveState !== undefined) {
+    updateData.archiveState = archiveState;
+  }
   if (budgetPlanned !== undefined) {
     updateData.budgetPlanned = budgetPlanned;
   }
@@ -105,6 +109,7 @@ export async function PATCH(
       name: updated.name,
       kind: updated.kind,
       workType: updated.workType,
+      archiveState: updated.archiveState,
       status: updated.status,
       budgetPlanned: updated.budgetPlanned != null ? Number(updated.budgetPlanned) : null,
       currency: updated.currency,

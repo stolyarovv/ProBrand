@@ -1,6 +1,7 @@
 import {
   type Client,
   type Project,
+  ProjectArchiveState,
   ProjectKind,
   ProjectWorkType,
   Role,
@@ -21,6 +22,7 @@ const postBody = z
     ownerId: z.string().cuid().optional().nullable(),
     budgetPlanned: z.coerce.number().min(0).optional().nullable(),
     currency: z.string().length(3).optional().default("BYN"),
+    archiveState: z.nativeEnum(ProjectArchiveState).optional().default(ProjectArchiveState.ACTIVE),
   })
   .superRefine((data, ctx) => {
     if (data.kind === ProjectKind.COMMERCIAL) {
@@ -84,6 +86,7 @@ export async function POST(req: Request) {
     ownerId,
     budgetPlanned,
     currency,
+    archiveState,
   } = parsed.data;
 
   if (ownerId) {
@@ -130,6 +133,7 @@ export async function POST(req: Request) {
       name: name.trim(),
       kind,
       workType,
+      archiveState,
       budgetPlanned: budgetPlanned ?? null,
       currency,
     },
@@ -153,6 +157,7 @@ function serializeProject(
     name: p.name,
     kind: p.kind,
     workType: p.workType,
+    archiveState: p.archiveState,
     status: p.status,
     budgetPlanned: p.budgetPlanned != null ? Number(p.budgetPlanned) : null,
     currency: p.currency,

@@ -46,6 +46,11 @@ enum ProjectWorkType {
   OTHER
 }
 
+enum ProjectArchiveState {
+  ACTIVE
+  ARCHIVED
+}
+
 enum TaskStatus {
   TODO
   IN_PROGRESS
@@ -195,6 +200,7 @@ model Project {
   status         ProjectStatus   @default(PLANNED)
   kind           ProjectKind     @default(COMMERCIAL)
   workType       ProjectWorkType @default(OTHER)
+  archiveState   ProjectArchiveState @default(ACTIVE)
   budgetPlanned  Decimal?        @db.Decimal(12, 2)
   currency       String          @default("BYN")
   startDate      DateTime?
@@ -214,6 +220,7 @@ model Project {
   @@index([organizationId])
   @@index([clientId])
   @@index([ownerId])
+  @@index([archiveState])
 }
 
 model ProjectMember {

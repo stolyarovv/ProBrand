@@ -36,6 +36,7 @@ export default async function ProjectsPage() {
     name: p.name,
     kind: p.kind,
     workType: p.workType,
+    archiveState: p.archiveState,
     status: p.status,
     budgetPlanned: p.budgetPlanned != null ? Number(p.budgetPlanned) : null,
     currency: p.currency,
