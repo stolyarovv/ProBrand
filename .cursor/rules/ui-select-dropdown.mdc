@@ -1,0 +1,11 @@
+---
+description: Выпадающие списки (select) — отступ стрелки от правого края
+alwaysApply: false
+globs: **/*.{tsx,css}
+---
+
+# Select / dropdown: отступ иконки раскрытия
+
+- У нативного `<select>` стрелка браузера прижата к краю. Для единообразия используйте класс **`select-field`** из `src/app/globals.css` (кастомная SVG-стрелка).
+- **Правило:** правый край иконки стрелки — **ровно 10px** от правого края рамки поля (`background-position: right 10px center`). Не уменьшать этот отступ без согласования.
+- Для новых экранов: `className="select-field"` или `className="mt-1 select-field"` вместо длинного набора утилит Tailwind на `<select>`.

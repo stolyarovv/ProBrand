@@ -45,9 +45,6 @@ const STATUS_LABELS: Record<ProjectStatus, string> = {
   [ProjectStatus.CANCELLED]: "Отменён",
 };
 
-const selectClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-950 dark:text-white";
-
 function formatMoney(amount: number | null, currency: string) {
   if (amount == null) {
     return "—";
@@ -250,7 +247,7 @@ export function ProjectsBoard({
                         const v = e.target.value;
                         void patchProject(p.id, { ownerId: v === "" ? null : v });
                       }}
-                      className={selectClass}
+                      className="select-field"
                     >
                       <option value="">— не назначен —</option>
                       {members.map((m) => (
@@ -268,7 +265,7 @@ export function ProjectsBoard({
                       onChange={(e) => {
                         void patchProject(p.id, { workType: e.target.value as ProjectWorkType });
                       }}
-                      className={selectClass}
+                      className="select-field"
                     >
                       {(Object.keys(WORK_TYPE_LABELS) as ProjectWorkType[]).map((key) => (
                         <option key={key} value={key}>
@@ -285,7 +282,7 @@ export function ProjectsBoard({
                       onChange={(e) => {
                         void patchProject(p.id, { kind: e.target.value as ProjectKind });
                       }}
-                      className={selectClass}
+                      className="select-field"
                     >
                       {(Object.keys(KIND_LABELS) as ProjectKind[]).map((key) => (
                         <option key={key} value={key}>
@@ -361,7 +358,7 @@ export function ProjectsBoard({
                   id="proj-kind"
                   value={kind}
                   onChange={(e) => setKind(e.target.value as ProjectKind)}
-                  className={`mt-1 ${selectClass}`}
+                  className="mt-1 select-field"
                 >
                   {(Object.keys(KIND_LABELS) as ProjectKind[]).map((key) => (
                     <option key={key} value={key}>
@@ -384,7 +381,7 @@ export function ProjectsBoard({
                       value={clientId}
                       disabled={newClientName.trim().length > 0}
                       onChange={(e) => setClientId(e.target.value)}
-                      className={`mt-1 ${selectClass}`}
+                      className="mt-1 select-field"
                     >
                       <option value="">— не выбран —</option>
                       {clients.map((c) => (
@@ -424,7 +421,7 @@ export function ProjectsBoard({
                     id="proj-client-int"
                     value={clientId}
                     onChange={(e) => setClientId(e.target.value)}
-                    className={`mt-1 ${selectClass}`}
+                    className="mt-1 select-field"
                   >
                     <option value="">— нет —</option>
                     {clients.map((c) => (
@@ -443,7 +440,7 @@ export function ProjectsBoard({
                   id="proj-owner"
                   value={ownerId}
                   onChange={(e) => setOwnerId(e.target.value)}
-                  className={`mt-1 ${selectClass}`}
+                  className="mt-1 select-field"
                 >
                   <option value="">— не назначен —</option>
                   {members.map((m) => (
@@ -461,7 +458,7 @@ export function ProjectsBoard({
                   id="proj-wt"
                   value={workType}
                   onChange={(e) => setWorkType(e.target.value as ProjectWorkType)}
-                  className={`mt-1 ${selectClass}`}
+                  className="mt-1 select-field"
                 >
                   {(Object.keys(WORK_TYPE_LABELS) as ProjectWorkType[]).map((key) => (
                     <option key={key} value={key}>

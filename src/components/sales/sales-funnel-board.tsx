@@ -352,7 +352,7 @@ export function SalesFunnelBoard({
                   value={leadClientId}
                   disabled={leadNewName.trim().length > 0}
                   onChange={(e) => setLeadClientId(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                  className="mt-1 select-field disabled:opacity-50"
                 >
                   <option value="">— не выбран —</option>
                   {clients.map((c) => (
